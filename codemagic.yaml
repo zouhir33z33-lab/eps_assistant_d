@@ -1,0 +1,29 @@
+workflows:
+  android-workflow:
+    name: Android Workflow
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      java: 17
+    scripts:
+      - name: Setup project and fix minSdk
+        script: |
+          flutter create . --project-name eps_assistant_dz --platforms=android
+          python -c "
+          import os
+          if os.path.exists('android/app/build.gradle.kts'):
+              with open('android/app/build.gradle.kts', 'r') as f: content = f.read()
+              content = content.replace('minSdk = flutter.minSdkVersion', 'minSdk = 23')
+              with open('android/app/build.gradle.kts', 'w') as f: f.write(content)
+          if os.path.exists('android/app/build.gradle'):
+              with open('android/app/build.gradle', 'r') as f: content = f.read()
+              content = content.replace('minSdkVersion flutter.minSdkVersion', 'minSdkVersion 23')
+              with open('android/app/build.gradle', 'w') as f: f.write(content)
+          "
+          flutter pub get
+      - name: Build APK
+        script: |
+          flutter build apk --release
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
