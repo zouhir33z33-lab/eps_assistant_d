@@ -7,20 +7,41 @@ workflows:
       flutter: stable
       java: 17
     scripts:
-      - name: Setup project and fix minSdk
+      - name: Generate Android files and Fix Gradle Settings
         script: |
+          # إنشاء ملفات الأندرويد الأساسية
           flutter create . --project-name eps_assistant_dz --platforms=android
+          
+          # استخدام Python لتعديل ملف build.gradle الرئيسي
           python -c "
-          import os
-          if os.path.exists('android/app/build.gradle.kts'):
-              with open('android/app/build.gradle.kts', 'r') as f: content = f.read()
-              content = content.replace('minSdk = flutter.minSdkVersion', 'minSdk = 23')
-              with open('android/app/build.gradle.kts', 'w') as f: f.write(content)
-          if os.path.exists('android/app/build.gradle'):
-              with open('android/app/build.gradle', 'r') as f: content = f.read()
-              content = content.replace('minSdkVersion flutter.minSdkVersion', 'minSdkVersion 23')
-              with open('android/app/build.gradle', 'w') as f: f.write(content)
+          import os, re
+          
+          # تعديل ملف app/build.gradle
+          app_file = 'android/app/build.gradle'
+          if os.path.exists(app_file):
+              with open(app_file, 'r') as f: content = f.read()
+              content = re.sub(r'compileSdkVersion\s+\d+', 'compileSdkVersion 34', content)
+              content = re.sub(r'minSdkVersion\s+\d+', 'minSdkVersion 23', content)
+              content = re.sub(r'targetSdkVersion\s+\d+', 'targetSdkVersion 34', content)
+              with open(app_file, 'w') as f: f.write(content)
+              
+          # تعديل ملف build.gradle.kts (إذا كان موجوداً)
+          app_file_kts = 'android/app/build.gradle.kts'
+          if os.path.exists(app_file_kts):
+              with open(app_file_kts, 'r') as f: content = f.read()
+              content = re.sub(r'compileSdk\s*=\s*\d+', 'compileSdk = 34', content)
+              content = re.sub(r'minSdk\s*=\s*\d+', 'minSdk = 23', content)
+              content = re.sub(r'targetSdk\s*=\s*\d+', 'targetSdk = 34', content)
+              with open(app_file_kts, 'w') as f: f.write(content)
+              
+          # تعديل ملف build.gradle الرئيسي (لإصدار Gradle)
+          root_gradle = 'android/build.gradle'
+          if os.path.exists(root_gradle):
+              with open(root_gradle, 'r') as f: content = f.read()
+              content = content.replace(\"ext.kotlin_version = '1.7.10'\", \"ext.kotlin_version = '1.9.0'\")
+              with open(root_gradle, 'w') as f: f.write(content)
           "
+          
           flutter pub get
       - name: Build APK
         script: |
